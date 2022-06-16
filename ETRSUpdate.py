@@ -6,7 +6,7 @@ import os
 import glob
 
 global basePath
-basePath = "S:\PDM Files\P1 - Mustang\\"
+basePath = "S:\\PDM Files\P1 - Mustang\\"
 global targetPath
 targetPath = f"{basePath}\ETRS\ETRS Master\ETRS v3 Master.xlsx"
 
@@ -63,7 +63,7 @@ def write_to_ETRS():
     todayBOMSource = f"{basePath}{BOMExportPath}{todayBOMFormat}.xlsx"
     yesterdayBOMSource = f"{basePath}{BOMExportPath}{yesterdayBOMFormat}.xlsx"
     weekendBOMSource = f"{basePath}{BOMExportPath}{weekendBOMFormat}.xlsx"
-    workflowSource = f"{basePath}\BOM\Upchain Custom Reports\EBOM Reports\\eBOM Workflow Report {todayBOMFormat}.xlsx"
+    workflowSource = fr"{basePath}\BOM\Upchain Custom Reports\EBOM Reports\eBOM Workflow Report {todayBOMFormat}.xlsx"
     savePath = f"{basePath}\ETRS\ETRS Exports\\ETRS " + str(date.today())
 
     print("Loading ETRS Workbook " + targetPath)
