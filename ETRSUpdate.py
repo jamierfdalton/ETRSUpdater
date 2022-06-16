@@ -6,11 +6,9 @@ import os
 import glob
 
 global basePath
-basePath = r"S:\PDM Files\P1 - Mustang\"
+basePath = r"S:\PDM Files\P1 - Mustang\\"
 global targetPath
 targetPath = fr"{basePath}\ETRS\ETRS Master\ETRS v3 Master.xlsx"
-
-print("Jamie is Great Master")
 
 
 def connect_to_google_sheet(sheetId):
