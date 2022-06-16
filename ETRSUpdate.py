@@ -11,6 +11,8 @@ global targetPath
 targetPath = f"{basePath}\ETRS\ETRS Master\ETRS v3 Master.xlsx"
 print(targetPath)
 
+
+print("Hello World")
 def connect_to_google_sheet(sheetId):
     # Connects to the Google Sheet specified in the sheetID
     # and returns the sheet
