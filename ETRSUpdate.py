@@ -9,10 +9,10 @@ global basePath
 basePath = "S:\PDM Files\P1 - Mustang\\"
 global targetPath
 targetPath = f"{basePath}\ETRS\ETRS Master\ETRS v3 Master.xlsx"
-print(targetPath)
+
+print("Jamie is Great")
 
 
-print("Hello World")
 def connect_to_google_sheet(sheetId):
     # Connects to the Google Sheet specified in the sheetID
     # and returns the sheet
@@ -31,7 +31,7 @@ def write_to_finance_update_csv():
     sh = connect_to_google_sheet("1OZemQa88tV9a4_-21oaAQnt5mbAo1Y7WLTXCDM7jIoE")
     df = pd.DataFrame(sh.get_all_values())
 
-    filename = rf"{basePath}\ETRS\DataFiles\\Finance " + str(date.today()) + ".csv"
+    filename = f"{basePath}\ETRS\DataFiles\\Finance " + str(date.today()) + ".csv"
     print("Writing values to CSV at " + filename)
     df.to_csv(filename, index=False, header=False)
 
@@ -52,13 +52,19 @@ def load_data_file(sourcePath):
 
 def write_to_ETRS():
     # Gen's feedback - f(strings), create a base path variable,
-    existingFileList = glob.glob(rf"{basePath}\ETRS\*.xlsx")
-    financeSource = rf"{basePath}\ETRS\DataFiles\\Finance " + str(date.today()) + ".csv"
-    todayBOMSource = rf"{basePath}\BOM\BOM Exports\BOM Export " + str(date.today().strftime('%Y%m%d')) + ".xlsx"
-    yesterdayBOMSource = rf"{basePath}\BOM\BOM Exports\BOM Export " + str((date.today() - timedelta(days=1)).strftime("%Y%m%d")) + ".xlsx"
-    weekendBOMSource = rf"{basePath}\BOM\BOM Exports\BOM Export " + str((date.today() - timedelta(days=3)).strftime("%Y%m%d")) + ".xlsx"
-    workflowSource = rf"{basePath}\BOM\Upchain Custom Reports\EBOM Reports\\eBOM Workflow Report " + str(date.today().strftime('%Y%m%d')) + ".xlsx"
-    savePath = rf"{basePath}\ETRS\ETRS Exports\\ETRS " + str(date.today())
+    BOMExportPath = "\BOM\BOM Exports\BOM Export "
+    today = date.today()
+    todayBOMFormat = str(today.strftime('%Y%m%d'))
+    yesterdayBOMFormat = str(today - timedelta(days=1).strftime('%Y%m%d'))
+    weekendBOMFormat = str(today - timedelta(days=3).strftime('%Y%m%d'))
+
+    existingFileList = glob.glob(f"{basePath}\ETRS\*.xlsx")
+    financeSource = f"{basePath}\ETRS\DataFiles\\Finance {today}.csv "
+    todayBOMSource = f"{basePath}{BOMExportPath}{todayBOMFormat}.xlsx"
+    yesterdayBOMSource = f"{basePath}{BOMExportPath}{yesterdayBOMFormat}.xlsx"
+    weekendBOMSource = f"{basePath}{BOMExportPath}{weekendBOMFormat}.xlsx"
+    workflowSource = f"{basePath}\BOM\Upchain Custom Reports\EBOM Reports\\eBOM Workflow Report {todayBOMFormat}.xlsx"
+    savePath = f"{basePath}\ETRS\ETRS Exports\\ETRS " + str(date.today())
 
     print("Loading ETRS Workbook " + targetPath)
     book = openpyxl.load_workbook(targetPath)
@@ -103,19 +109,19 @@ def write_to_ETRS():
         print("Writing Workflow Export Data to ETRS")
         workflowData.to_excel(writer, sheet_name=sheetName3)
         print("Saving Master...")
-        book.save(rf"{basePath}\ETRS\ETRS Master\ETRS v3 Master.xlsx")
+        book.save(f"{basePath}\ETRS\ETRS Master\ETRS v3 Master.xlsx")
         print("Master Saved!")
         print("Saving Export...")
 
         # Archive existing .xlsx files in the main directory.
         for i in existingFileList:
-            archiveFilename = rf"{basePath}\ETRS\Archive\\" + i[31:]
+            archiveFilename = f"{basePath}\ETRS\Archive\\" + i[31:]
             try:
                 os.rename(i, archiveFilename)
             except:
                 pass
 
-        book.save(rf"{basePath}\ETRS\\ETRS " + str(date.today()) + ".xlsx")
+        book.save(f"{basePath}\ETRS\\ETRS " + str(date.today()) + ".xlsx")
         print("Export Saved!")
 
 
