@@ -82,22 +82,14 @@ def write_to_ETRS():
         todayBOMData = load_data_file(todayBOMSource)
 
         print("Loading yesterday's BOM Export Data")
+        
         if os.path.exists(yesterdayBOMSource):
-            print("YAS QUEEN")
+            yesterdayBOMData = load_data_file(yesterdayBOMSource)
+        elif os.path.exists(weekendBOMSource):
+            print("Yesterday's BOM Export Data not found. Skipping the weekend")
+            yesterdayBOMData = load_data_file(weekendBOMSource)
         else:
-            print("NOPE NOPE NOPE")
-
-
-        # try:
-        #     yesterdayBOMData = load_data_file(yesterdayBOMSource)
-        # except:
-        #     # needs an exception for no file found
-        #     try:
-        #         print("Yesterday's BOM Export Data not found. Skipping the weekend")
-        #         yesterdayBOMData = load_data_file(weekendBOMSource)
-        #     except:
-        #         #needs an exception for no file found
-        #         print("ERROR Yesterday's BOM and last Friday's BOM not found.")
+            print("Couldn't find the BOM data files for the dates requested")
 
         print("Loading Monday's BOM Export Data")
         mondayBOMData = load_data_file(mondayBOMSource)
@@ -133,13 +125,7 @@ def write_to_ETRS():
         # Archive existing .xlsx files in the main directory.
         for i in existingFileList:
             archiveFilename = f"{basePath}\ETRS\Archive\\" + i[31:]
-            try:
-                os.rename(i, archiveFilename)
-            except:
-                # Needs exception for if file not found
-                # Needs exception for if file can't be Saved
-                pass
-
+            os.rename(i, archiveFilename)
         print("Export Saved!")
 
 
