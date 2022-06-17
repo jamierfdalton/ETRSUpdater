@@ -62,6 +62,7 @@ def write_to_ETRS():
     todayBOMFormat = str(today.strftime('%Y%m%d'))
     yesterdayBOMFormat = str((today - timedelta(days=1)).strftime('%Y%m%d'))
     weekendBOMFormat = str((today - timedelta(days=3)).strftime('%Y%m%d'))
+    workflowPath = r"\BOM\Upchain Custom Reports\EBOM Reports\eBOM Workflow Report "
 
     existingFileList = glob.glob(f"{basePath}\ETRS\*.xlsx")
     financeSource = fr"{basePath}ETRS\DataFiles\Finance {today}.csv "
@@ -69,7 +70,7 @@ def write_to_ETRS():
     yesterdayBOMSource = fr"{basePath}{BOMExportPath}{yesterdayBOMFormat}.xlsx"
     weekendBOMSource = fr"{basePath}{BOMExportPath}{weekendBOMFormat}.xlsx"
     mondayBOMSource = fr"{basePath}{BOMExportPath}{mondayBOMFormat}.xlsx"
-    workflowSource = fr"{basePath}\BOM\Upchain Custom Reports\EBOM Reports\eBOM Workflow Report {todayBOMFormat}.xlsx"
+    workflowSource = fr"{basePath}{workflowPath}{todayBOMFormat}.xlsx"
     savePath = fr"{basePath}\ETRS\ETRS Exports\\ETRS " + str(date.today())
 
     print("Loading ETRS Workbook " + targetPath)
@@ -82,7 +83,7 @@ def write_to_ETRS():
         todayBOMData = load_data_file(todayBOMSource)
 
         print("Loading yesterday's BOM Export Data")
-        
+
         if os.path.exists(yesterdayBOMSource):
             yesterdayBOMData = load_data_file(yesterdayBOMSource)
         elif os.path.exists(weekendBOMSource):
@@ -109,13 +110,13 @@ def write_to_ETRS():
         print("Writing Finance Data to ETRS")
         financeData.to_excel(writer, sheet_name=sheetName2)
         print("Writing today's BOM Export Data to ETRS")
-        todayBOMData.to_excel(writer,sheet_name=sheetName1)
+        todayBOMData.to_excel(writer, sheet_name=sheetName1)
         print("Writing yesterday's BOM Export Data to ETRS")
-        yesterdayBOMData.to_excel(writer,sheet_name=sheetName5)
+        yesterdayBOMData.to_excel(writer, sheet_name=sheetName5)
         print("Writing Monday's BOM Export Data to ETRS")
         mondayBOMData.to_excel(writer, sheet_name=sheetName6)
         print("Writing Workflow Export Data to ETRS")
-        workflowData.to_excel(writer,sheet_name=sheetName3)
+        workflowData.to_excel(writer, sheet_name=sheetName3)
 
         print("Saving Master...")
         book.save(f"{basePath}\ETRS\ETRS Master\ETRS v3 Master.xlsx")
