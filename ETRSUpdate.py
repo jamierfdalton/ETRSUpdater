@@ -1,4 +1,4 @@
-""" Automatic update tool for Engineering Timing Release Plan and BOM Validation
+""" Automated updates for Engineering Timing Release Plan and BOM Validation
 
 Gathers data from Upchain eBOM exports and consolidates them into
 a single excel file. Requires BOM Exports from Upchain on a daily basis
@@ -22,8 +22,7 @@ targetPath = fr"{basePath}\ETRS\ETRS Master\ETRS v4 Master.xlsx"
 
 
 def connect_to_google_sheet(sheetId):
-    # Connects to the Google Sheet specified in the sheetID
-    # and returns the sheet
+    """ Connects to Google Sheets and returns values as a list of lists """
     print("Connecting to Google Sheets...")
     gc = gspread.service_account()
     sheet = gc.open_by_key(sheetId).sheet1
@@ -31,22 +30,31 @@ def connect_to_google_sheet(sheetId):
     return sheet
 
 
-def write_to_finance_update_csv():
-    # Gets all values from the open google sheet and stores them as a dataframe
-    # Then writes that dataframe to CSV containing today's date in the filename
-    # (Needs to save so we have a snapshot of each day)
+def write_to_finance_update_csv(sheetKey, filename):
+    """ Retrieves values from Google Sheet specified in the sheetKey
+
+    sheetKey is a string that can be found in the URL of the target sheet you
+    are connecting to. This function retrieves values from the Google Sheet
+    and saves them in a CSV labelled with today's date.
+    """
+
     print("Retrieving values from Google Sheets...")
-    sh = connect_to_google_sheet("1OZemQa88tV9a4_-21oaAQnt5mbAo1Y7WLTXCDM7jIoE")
+    sh = connect_to_google_sheet(sheetKey)
     df = pd.DataFrame(sh.get_all_values())
 
-    filename = f"{basePath}\ETRS\DataFiles\\Finance " + str(date.today()) + ".csv"
     print("Writing values to CSV at " + filename)
     df.to_csv(filename, index=False, header=False)
 
 
 def load_data_file(sourcePath):
-    # load data file using pandas
-    # Could use cases here instead of elifs
+    """ Loads data from CSV or XLSX into a dataframe
+
+    SourcePath should be the file path of either a CSV or an Excel. If the
+    file is a Formatted BOM, the sheet name will be correctly labelled in the
+    ETRS, otherwise it will follow standard Excel naming conventions
+    """
+
+    #TODO change this to cases rather than if/elif
     if sourcePath[-4:] == "csv ":
         print("CSV found, reading csv")
         data = pd.read_csv(sourcePath)
@@ -62,8 +70,29 @@ def load_data_file(sourcePath):
     return data
 
 
+def excel_achiver():
+    """ Moves any old excel documents to the Archive folder in the ETRS folder
+    """
+
+    existingFileList = glob.glob(f"{basePath}\ETRS\*.xlsx")
+    print("Saving Export...")
+
+    for i in existingFileList:
+        archiveFilename = f"{basePath}\ETRS\Archive\\" + i[31:]
+        os.rename(i, archiveFilename)
+
+    print("Export Saved!")
+
+
 def write_to_ETRS():
-    # Gen's feedback - f(strings), create a base path variable,
+    """ Collects the various data sources and writes them to an XLSX file
+
+    If you have the accompanying ETRS Master file at targetPath, this export
+    will conform to the requirements of that sheet to automate the creation of
+    a new ETRS file and archive the one. Ideally this process happens on a daily
+    basis.
+    """
+    # Gen's feedback - f(strings) (done), create a base path variable (done), loop through this somehow?
     BOMExportPath = "\BOM\BOM Exports\BOM Export "
     today = date.today()
     monday = today - datetime.timedelta(days=today.weekday())
@@ -73,7 +102,6 @@ def write_to_ETRS():
     weekendBOMFormat = str((today - timedelta(days=3)).strftime('%Y%m%d'))
     workflowPath = r"\BOM\Upchain Custom Reports\EBOM Reports\eBOM Workflow Report "
 
-    existingFileList = glob.glob(f"{basePath}\ETRS\*.xlsx")
     financeSource = fr"{basePath}ETRS\DataFiles\Finance {today}.csv "
     todayBOMSource = fr"{basePath}{BOMExportPath}{todayBOMFormat}.xlsx"
     yesterdayBOMSource = fr"{basePath}{BOMExportPath}{yesterdayBOMFormat}.xlsx"
@@ -85,7 +113,8 @@ def write_to_ETRS():
     print("Loading ETRS Workbook " + targetPath)
     book = openpyxl.load_workbook(targetPath)
 
-    with pd.ExcelWriter(targetPath, engine='openpyxl', mode='a', if_sheet_exists="replace") as writer:
+    with pd.ExcelWriter(targetPath, engine='openpyxl', mode='a',
+                        if_sheet_exists="replace") as writer:
         print("Loading Finance Export Data")
         financeData = load_data_file(financeSource)
         print("Loading today's BOM Export Data")
@@ -130,19 +159,18 @@ def write_to_ETRS():
         print("Saving Master...")
         book.save(f"{basePath}\ETRS\ETRS Master\ETRS v3 Master.xlsx")
         print("Master Saved!")
-        print("Saving Export...")
-
-        # Archive existing .xlsx files in the main directory.
-        for i in existingFileList:
-            archiveFilename = f"{basePath}\ETRS\Archive\\" + i[31:]
-            os.rename(i, archiveFilename)
-        print("Export Saved!")
 
 
 def main():
+    """ Wrapper function for running the major elements of the script in order
+    """
+
     print("Updating ETRS...")
-    write_to_finance_update_csv()
+    write_to_finance_update_csv(
+        "1OZemQa88tV9a4_-21oaAQnt5mbAo1Y7WLTXCDM7jIoE",
+        f"{basePath}\ETRS\DataFiles\\Finance " + str(date.today()) + "JDJD.csv")
     write_to_ETRS()
+    excel_archiver()
     print("Update Complete")
 
 if __name__ == "__main__":
