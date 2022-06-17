@@ -37,6 +37,7 @@ def write_to_finance_update_csv():
 
 def load_data_file(sourcePath):
     # load data file using pandas
+    # Could use cases here instead of elifs
     if sourcePath[-4:] == "csv ":
         print("CSV found, reading csv")
         data = pd.read_csv(sourcePath)
@@ -81,15 +82,23 @@ def write_to_ETRS():
         todayBOMData = load_data_file(todayBOMSource)
 
         print("Loading yesterday's BOM Export Data")
-        try:
-            yesterdayBOMData = load_data_file(yesterdayBOMSource)
-        except:
-            try:
-                print("Yesterday's BOM Export Data not found. Skipping the weekend")
-                yesterdayBOMData = load_data_file(weekendBOMSource)
-            except:
-                print("ERROR Yesterday's BOM and last Friday's BOM not found.")
-                # Add a user input date picker here?
+        if os.path.exists(yesterdayBOMSource):
+            print("YAS QUEEN")
+        else:
+            print("NOPE NOPE NOPE")
+
+
+        # try:
+        #     yesterdayBOMData = load_data_file(yesterdayBOMSource)
+        # except:
+        #     # needs an exception for no file found
+        #     try:
+        #         print("Yesterday's BOM Export Data not found. Skipping the weekend")
+        #         yesterdayBOMData = load_data_file(weekendBOMSource)
+        #     except:
+        #         #needs an exception for no file found
+        #         print("ERROR Yesterday's BOM and last Friday's BOM not found.")
+
         print("Loading Monday's BOM Export Data")
         mondayBOMData = load_data_file(mondayBOMSource)
 
@@ -116,7 +125,6 @@ def write_to_ETRS():
         print("Writing Workflow Export Data to ETRS")
         workflowData.to_excel(writer,sheet_name=sheetName3)
 
-
         print("Saving Master...")
         book.save(f"{basePath}\ETRS\ETRS Master\ETRS v3 Master.xlsx")
         print("Master Saved!")
@@ -128,9 +136,10 @@ def write_to_ETRS():
             try:
                 os.rename(i, archiveFilename)
             except:
+                # Needs exception for if file not found
+                # Needs exception for if file can't be Saved
                 pass
 
-        book.save(f"{basePath}\ETRS\\" + str(date.today())+ ".xlsx")
         print("Export Saved!")
 
 
