@@ -9,7 +9,7 @@ import glob
 global basePath
 basePath = "S:\PDM Files\P1 - Mustang\\"
 global targetPath
-targetPath = fr"{basePath}\ETRS\ETRS Master\ETRS v3 Master.xlsx"
+targetPath = fr"{basePath}\ETRS\ETRS Master\ETRS v4 Master.xlsx"
 
 
 def connect_to_google_sheet(sheetId):
@@ -123,14 +123,14 @@ def write_to_ETRS():
         print("Saving Export...")
 
         # Archive existing .xlsx files in the main directory.
-        # for i in existingFileList:
-        #     archiveFilename = f"{basePath}\ETRS\Archive\\" + i[31:]
-        #     try:
-        #         os.rename(i, archiveFilename)
-        #     except:
-        #         pass
+        for i in existingFileList:
+            archiveFilename = f"{basePath}\ETRS\Archive\\" + i[31:]
+            try:
+                os.rename(i, archiveFilename)
+            except:
+                pass
 
-        book.save(f"{basePath}\ETRS\ETRS Master\\" + str(date.today()) + " JD TEST.xlsx")
+        book.save(f"{basePath}\ETRS\\" + str(date.today())+ ".xlsx")
         print("Export Saved!")
 
 
