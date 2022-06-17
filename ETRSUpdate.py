@@ -1,3 +1,12 @@
+""" Automatic update tool for Engineering Timing Release Plan and BOM Validation
+
+Gathers data from Upchain eBOM exports and consolidates them into
+a single excel file. Requires BOM Exports from Upchain on a daily basis
+run through the BOM Analyser VBA document and the custom Upchain reporting that
+is recieved by email daily.
+
+"""
+
 import gspread
 from datetime import date, timedelta
 import datetime
