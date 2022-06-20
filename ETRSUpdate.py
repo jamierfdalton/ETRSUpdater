@@ -70,7 +70,7 @@ def load_data_file(sourcePath):
     return data
 
 
-def excel_achiver():
+def excel_archiver():
     """ Moves any old excel documents to the Archive folder in the ETRS folder
     """
 
