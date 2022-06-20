@@ -157,7 +157,7 @@ def write_to_ETRS():
         workflowData.to_excel(writer, sheet_name=sheetName3)
 
         print("Saving Master...")
-        book.save(f"{basePath}\ETRS\ETRS Master\ETRS v3 Master.xlsx")
+        book.save(f"{basePath}\ETRS\\" + str(date.today())+ ".xlsx")
         print("Master Saved!")
 
 
