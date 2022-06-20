@@ -79,7 +79,10 @@ def excel_archiver():
 
     for i in existingFileList:
         archiveFilename = f"{basePath}\ETRS\Archive\\" + i[31:]
-        os.rename(i, archiveFilename)
+        try:
+            os.rename(i, archiveFilename)
+        except FileExistsError:
+            os.rename(i, "New "+ archiveFilename)
 
     print("Export Saved!")
 
