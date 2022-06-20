@@ -166,11 +166,14 @@ def main():
     """
 
     print("Updating ETRS...")
+
     write_to_finance_update_csv(
         "1OZemQa88tV9a4_-21oaAQnt5mbAo1Y7WLTXCDM7jIoE",
-        f"{basePath}\ETRS\DataFiles\\Finance " + str(date.today()) + "JDJD.csv")
+        f"{basePath}\ETRS\DataFiles\\Finance " + str(date.today()) + ".csv"
+        )
     write_to_ETRS()
     excel_archiver()
+
     print("Update Complete")
 
 if __name__ == "__main__":
