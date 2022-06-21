@@ -1,9 +1,9 @@
-""" Automated updates for Engineering Timing Release Plan and BOM Validation
+""" Autoupdater for Engineering Timing Release Plan and eBOM Export
 
 Gathers data from Upchain eBOM exports and consolidates them into
-a single excel file. Requires BOM Exports from Upchain on a daily basis
-run through the BOM Analyser VBA document and the custom Upchain reporting that
-is recieved by email daily.
+a single excel file. Requires BOM Exports from Upchain on a daily
+basis run through the BOM Analyser VBA document and the custom
+Upchain reporting that is recieved by email daily.
 
 """
 
@@ -54,7 +54,7 @@ def load_data_file(sourcePath):
     ETRS, otherwise it will follow standard Excel naming conventions
     """
 
-    #TODO change this to cases rather than if/elif
+    # TODO change this to cases rather than if/elif
     if sourcePath[-4:] == "csv ":
         print("CSV found, reading csv")
         data = pd.read_csv(sourcePath)
@@ -80,7 +80,7 @@ def excel_archiver():
     for i in existingFileList:
         archiveBasePath = f"{basePath}\ETRS\Archive\\"
         archiveFilename = i[32:]
-        
+
         try:
             os.rename(i, archiveBasePath + archiveFilename)
         except FileExistsError:
@@ -95,8 +95,8 @@ def write_to_ETRS():
 
     If you have the accompanying ETRS Master file at targetPath, this export
     will conform to the requirements of that sheet to automate the creation of
-    a new ETRS file and archive the one. Ideally this process happens on a daily
-    basis.
+    a new ETRS file and archive the one. Ideally this process happens
+    on a daily basis.
     """
     # Gen's feedback -
     # f(strings) (done),
@@ -109,7 +109,8 @@ def write_to_ETRS():
     todayBOMFormat = str(today.strftime('%Y%m%d'))
     yesterdayBOMFormat = str((today - timedelta(days=1)).strftime('%Y%m%d'))
     weekendBOMFormat = str((today - timedelta(days=3)).strftime('%Y%m%d'))
-    workflowPath = r"\BOM\Upchain Custom Reports\EBOM Reports\eBOM Workflow Report "
+    workflowPath = r"""\BOM\Upchain Custom Reports
+                    \EBOM Reports\eBOM Workflow Report """
 
     financeSource = fr"{basePath}ETRS\DataFiles\Finance {today}.csv "
     todayBOMSource = fr"{basePath}{BOMExportPath}{todayBOMFormat}.xlsx"
@@ -134,7 +135,7 @@ def write_to_ETRS():
         if os.path.exists(yesterdayBOMSource):
             yesterdayBOMData = load_data_file(yesterdayBOMSource)
         elif os.path.exists(weekendBOMSource):
-            print("Yesterday's BOM Export Data not found. Skipping the weekend")
+            print("Yesterday's BOM Export not found. Skipping the weekend")
             yesterdayBOMData = load_data_file(weekendBOMSource)
         else:
             print("Couldn't find the BOM data files for the dates requested")
@@ -166,7 +167,7 @@ def write_to_ETRS():
         workflowData.to_excel(writer, sheet_name=sheetName3)
 
         print("Saving Master...")
-        book.save(f"{basePath}\ETRS\\ETRS " + str(date.today())+ ".xlsx")
+        book.save(f"{basePath}\ETRS\\ETRS " + str(date.today()) + ".xlsx")
         print("Master Saved!")
 
 
