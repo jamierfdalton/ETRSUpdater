@@ -78,11 +78,14 @@ def excel_archiver():
     print("Saving Export...")
 
     for i in existingFileList:
-        archiveFilename = f"{basePath}\ETRS\Archive\\" + i[31:]
+        archiveBasePath = f"{basePath}\ETRS\Archive\\"
+        archiveFilename = i[32:]
+        
         try:
-            os.rename(i, archiveFilename)
+            os.rename(i, archiveBasePath + archiveFilename)
         except FileExistsError:
-            os.rename(i, "New "+ archiveFilename)
+
+            os.rename(i, archiveBasePath + "New " + archiveFilename)
 
     print("Export Saved!")
 
@@ -95,7 +98,10 @@ def write_to_ETRS():
     a new ETRS file and archive the one. Ideally this process happens on a daily
     basis.
     """
-    # Gen's feedback - f(strings) (done), create a base path variable (done), loop through this somehow?
+    # Gen's feedback -
+    # f(strings) (done),
+    # create a base path variable (done),
+    # loop through this somehow?
     BOMExportPath = "\BOM\BOM Exports\BOM Export "
     today = date.today()
     monday = today - datetime.timedelta(days=today.weekday())
@@ -174,8 +180,8 @@ def main():
         "1OZemQa88tV9a4_-21oaAQnt5mbAo1Y7WLTXCDM7jIoE",
         f"{basePath}\ETRS\DataFiles\\Finance " + str(date.today()) + ".csv"
         )
-    write_to_ETRS()
     excel_archiver()
+    write_to_ETRS()
 
     print("Update Complete")
 
