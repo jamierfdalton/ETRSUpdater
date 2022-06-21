@@ -11,6 +11,7 @@ from datetime import date, timedelta
 import datetime
 import os
 import glob
+import logging
 import pandas as pd
 import openpyxl
 import gspread
@@ -18,13 +19,14 @@ import gspread
 BASE_PATH = r"S:\PDM Files\P1 - Mustang\\"
 TARGET_PATH = fr"{BASE_PATH}\ETRS\ETRS Master\ETRS v4 Master.xlsx"
 
+logging.basicConfig(filename="etrs_updater.log", encoding='utf-8', level=logging.DEBUG)
 
 def connect_to_google_sheet(sheet_id):
     """ Connects to Google Sheets and returns values as a list of lists """
-    print("Connecting to Google Sheets...")
-    g_c = gspread.service_account()
-    sheet = g_c.open_by_key(sheet_id).sheet1
-    print("Connected")
+    logging.info("Connecting to Google Sheets...")
+    google_connect = gspread.service_account()
+    sheet = google_connect.open_by_key(sheet_id).sheet1
+    logging.info("Connected")
     return sheet
 
 
@@ -36,11 +38,11 @@ def write_to_finance_update_csv(sheet_key, filename):
     and saves them in a CSV labelled with today's date.
     """
 
-    print("Retrieving values from Google Sheets...")
+    logging.info("Retrieving values from Google Sheets...")
     google_sheet = connect_to_google_sheet(sheet_key)
     data_frame = pd.DataFrame(google_sheet.get_all_values())
 
-    print("Writing values to CSV at " + filename)
+    logging.info("Writing values to CSV at " + filename)
     data_frame.to_csv(filename, index=False, header=False)
 
 
@@ -53,16 +55,16 @@ def load_data_file(source_path):
     """
 
     if source_path[-4:] == "csv ":
-        print("CSV found, reading csv")
+        logging.info("CSV found, reading csv")
         data = pd.read_csv(source_path)
     elif source_path[-24:-14] == "BOM Export":
-        print("BOM Export found, reading excel")
+        logging.info("BOM Export found, reading excel")
         data = pd.read_excel(source_path, sheet_name="Formatted BOM")
     elif source_path[-4:] == "xlsx":
-        print("Excel doc found, reading excel")
+        logging.info("Excel doc found, reading excel")
         data = pd.read_excel(source_path)
     else:
-        print("Document not found")
+        logging.critical("Document not found")
 
     return data
 
@@ -72,19 +74,19 @@ def excel_archiver():
     """
 
     existing_file_list = glob.glob(fr"{BASE_PATH}\ETRS\*.xlsx")
-    print("Saving Export...")
+    logging.info("Saving Export...")
 
     for i in existing_file_list:
         archive_base_path = fr"{BASE_PATH}\ETRS\Archive\\"
-        archive_file_name = i[32:]
+        archive_file_name = i[33:]
 
         try:
             os.rename(i, archive_base_path + archive_file_name)
         except FileExistsError:
-
+# TODO This doesn't work. Maybe find the file name with os.path and then upsuffix
             os.rename(i, archive_base_path + "New " + archive_file_name)
 
-    print("Export Saved!")
+    logging.info("Export Saved!")
 
 
 def write_to_etrs():
@@ -115,30 +117,30 @@ def write_to_etrs():
     monday_bom_source = fr"{BASE_PATH}{bom_export_path}{monday_bom_format}.xlsx"
     workflow_source = fr"{BASE_PATH}{workflow_path}{today_bom_format}.xlsx"
 
-    print("Loading ETRS Workbook " + TARGET_PATH)
+    logging.info("Loading ETRS Workbook " + TARGET_PATH)
     book = openpyxl.load_workbook(TARGET_PATH)
 
     with pd.ExcelWriter(TARGET_PATH, engine='openpyxl', mode='a', # pylint: disable=abstract-class-instantiated
                         if_sheet_exists="replace") as writer:
-        print("Loading Finance Export Data")
+        logging.info("Loading Finance Export Data")
         finance_data = load_data_file(finance_source)
-        print("Loading today's BOM Export Data")
+        logging.info("Loading today's BOM Export Data")
         today_bom_data = load_data_file(today_bom_source)
 
-        print("Loading yesterday's BOM Export Data")
+        logging.info("Loading yesterday's BOM Export Data")
 
         if os.path.exists(yesterday_bom_source):
             yesterday_bom_data = load_data_file(yesterday_bom_source)
         elif os.path.exists(weekend_bom_source):
-            print("Yesterday's BOM Export not found. Skipping the weekend")
+            logging.info("Yesterday's BOM Export not found. Skipping the weekend")
             yesterday_bom_data = load_data_file(weekend_bom_source)
         else:
-            print("Couldn't find the BOM data files for the dates requested")
+            logging.info("Couldn't find the BOM data files for the dates requested")
 
-        print("Loading Monday's BOM Export Data")
+        logging.info("Loading Monday's BOM Export Data")
         monday_bom_data = load_data_file(monday_bom_source)
 
-        print("Loading Workflow Data")
+        logging.info("Loading Workflow Data")
         workflow_data = load_data_file(workflow_source)
 
 # Gen's feedback - loop this and avoid the explict calls
@@ -150,26 +152,26 @@ def write_to_etrs():
         writer.book = book
         writer.sheets = {ws.title: ws for ws in book.worksheets}
 
-        print("Writing Finance Data to ETRS")
+        logging.info("Writing Finance Data to ETRS")
         finance_data.to_excel(writer, sheet_name=sheet_name_2)
-        print("Writing today's BOM Export Data to ETRS")
+        logging.info("Writing today's BOM Export Data to ETRS")
         today_bom_data.to_excel(writer, sheet_name=sheet_name_1)
-        print("Writing yesterday's BOM Export Data to ETRS")
+        logging.info("Writing yesterday's BOM Export Data to ETRS")
         yesterday_bom_data.to_excel(writer, sheet_name=sheet_name_4)
-        print("Writing Monday's BOM Export Data to ETRS")
+        logging.info("Writing Monday's BOM Export Data to ETRS")
         monday_bom_data.to_excel(writer, sheet_name=sheet_name_5)
-        print("Writing Workflow Export Data to ETRS")
+        logging.info("Writing Workflow Export Data to ETRS")
         workflow_data.to_excel(writer, sheet_name=sheet_name_3)
 
-        print("Saving Master...")
+        logging.info("Saving Master...")
         book.save(fr"{BASE_PATH}\ETRS\\ETRS " + str(date.today()) + ".xlsx")
-        print(r"Master Saved!")
+        logging.info(r"Master Saved!")
 
 def main():
     """ Wrapper function for running the major elements of the script in order
     """
 
-    print("Updating ETRS...")
+    logging.info("Updating ETRS...")
 
     write_to_finance_update_csv(
         "1OZemQa88tV9a4_-21oaAQnt5mbAo1Y7WLTXCDM7jIoE",
@@ -178,7 +180,7 @@ def main():
     excel_archiver()
     write_to_etrs()
 
-    print("Update Complete")
+    logging.info("Update Successful")
 
 if __name__ == "__main__":
     main()
