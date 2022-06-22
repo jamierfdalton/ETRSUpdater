@@ -1,7 +1,9 @@
 """ Autoupdater for Engineering Timing Release Plan and eBOM Export
 
-Gathers data from Upchain eBOM exports and consolidates them into
-a single excel file. Requires BOM Exports from Upchain on a daily
+Gathers data from Upchain eBOM exports, google sheets,
+custom Upchain email reports and consolidates them into
+a single excel file, maintaining the formula that already exist
+in the master file. Requires BOM Exports from Upchain on a daily
 basis run through the BOM Analyser VBA document and the custom
 Upchain reporting that is recieved by email daily.
 
@@ -22,7 +24,7 @@ TARGET_PATH = fr"{BASE_PATH}\ETRS\ETRS Master\ETRS v4 Master.xlsx"
 logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s - ',
                     encoding='utf-8',
                     datefmt='%Y-%m-%d %H:%M:%S',
-                    level=logging.DEBUG,
+                    level=logging.INFO,
                     handlers=[
                         logging.FileHandler("etrs_updater.log"),
                         logging.StreamHandler()
@@ -39,9 +41,9 @@ def connect_to_google_sheet(sheet_id):
 
 
 def write_to_finance_update_csv(sheet_key, filename):
-    """ Retrieves values from Google Sheet specified in the sheetKey
+    """ Retrieves values from Google Sheet specified in the sheet_key
 
-    sheetKey is a string that can be found in the URL of the target sheet you
+    sheet_key is a string that can be found in the URL of the target sheet you
     are connecting to. This function retrieves values from the Google Sheet
     and saves them in a CSV labelled with today's date.
     """
@@ -57,7 +59,7 @@ def write_to_finance_update_csv(sheet_key, filename):
 def load_data_file(source_path):
     """ Loads data from CSV or XLSX into a dataframe
 
-    SourcePath should be the file path of either a CSV or an Excel. If the
+    source_path should be the file path of either a CSV or an Excel. If the
     file is a Formatted BOM, the sheet name will be correctly labelled in the
     ETRS, otherwise it will follow standard Excel naming conventions
     """
@@ -80,22 +82,15 @@ def load_data_file(source_path):
 def excel_archiver():
     """ Moves any old excel documents to the Archive folder in the ETRS folder
     """
+existing_file_list = glob.glob(fr"{BASE_PATH}\ETRS\*.xlsx")
+datetime_timestamp = datetime.datetime.now()
+string_timestamp = datetime_timestamp.strftime("%H-%M-%S")
 
-    existing_file_list = glob.glob(fr"{BASE_PATH}\ETRS\*.xlsx")
-    logging.info("Saving Export...")
-
-    for i in existing_file_list:
-        base_path, file = os.path.split(i)
-        filename, extension = os.path.splitext(file)
-        file_in_archive_path = base_path + r"\Archive\\" + filename + extension
-
-        if os.path.exists(file_in_archive_path):
-            newpath = base_path + r"\Archive\\" + filename + " New" + extension
-            os.rename(i, newpath)
-        else:
-            os.rename(i, file_in_archive_path)
-
-    logging.info("Export Saved!")
+for i in existing_file_list:
+    path, file = os.path.split(i)
+    existing_filename, extension = os.path.splitext(file)
+    archive_path = fr"{BASE_PATH}ETRS\Archive\{existing_filename} -- {string_timestamp}{extension}"
+    os.rename(i,archive_path)
 
 
 def write_to_etrs():
