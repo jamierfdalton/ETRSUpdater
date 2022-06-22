@@ -50,7 +50,7 @@ def write_to_finance_update_csv(sheet_key, filename):
     google_sheet = connect_to_google_sheet(sheet_key)
     data_frame = pd.DataFrame(google_sheet.get_all_values())
 
-    logging.info("Writing values to CSV at " + filename)
+    logging.info("Writing values to CSV at %s", filename)
     data_frame.to_csv(filename, index=False, header=False)
 
 
@@ -127,7 +127,7 @@ def write_to_etrs():
     monday_bom_source = fr"{BASE_PATH}{bom_export_path}{monday_bom_format}.xlsx"
     workflow_source = fr"{BASE_PATH}{workflow_path}{today_bom_format}.xlsx"
 
-    logging.info("Loading ETRS Workbook " + TARGET_PATH)
+    logging.info("Loading ETRS Workbook %s", TARGET_PATH)
     book = openpyxl.load_workbook(TARGET_PATH)
 
     with pd.ExcelWriter(TARGET_PATH, engine='openpyxl', mode='a', # pylint: disable=abstract-class-instantiated
@@ -181,6 +181,7 @@ def main():
     """ Wrapper function for running the major elements of the script in order
     """
 
+    logging.info("\n\n")
     logging.info("Updating ETRS...")
 
     write_to_finance_update_csv(
