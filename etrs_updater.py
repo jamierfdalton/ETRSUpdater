@@ -19,7 +19,15 @@ import gspread
 BASE_PATH = r"S:\PDM Files\P1 - Mustang\\"
 TARGET_PATH = fr"{BASE_PATH}\ETRS\ETRS Master\ETRS v4 Master.xlsx"
 
-logging.basicConfig(filename="etrs_updater.log", encoding='utf-8', level=logging.DEBUG)
+logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s - ',
+                    encoding='utf-8',
+                    datefmt='%Y-%m-%d %H:%M:%S',
+                    level=logging.DEBUG,
+                    handlers=[
+                        logging.FileHandler("etrs_updater.log"),
+                        logging.StreamHandler()
+                        ]
+                    )
 
 def connect_to_google_sheet(sheet_id):
     """ Connects to Google Sheets and returns values as a list of lists """
@@ -38,7 +46,7 @@ def write_to_finance_update_csv(sheet_key, filename):
     and saves them in a CSV labelled with today's date.
     """
 
-    logging.info("Retrieving values from Google Sheets...")
+    logging.info("Retrieving values from Google Sheets")
     google_sheet = connect_to_google_sheet(sheet_key)
     data_frame = pd.DataFrame(google_sheet.get_all_values())
 
@@ -77,14 +85,15 @@ def excel_archiver():
     logging.info("Saving Export...")
 
     for i in existing_file_list:
-        archive_base_path = fr"{BASE_PATH}\ETRS\Archive\\"
-        archive_file_name = i[33:]
+        base_path, file = os.path.split(i)
+        filename, extension = os.path.splitext(file)
+        file_in_archive_path = base_path + r"\Archive\\" + filename + extension
 
-        try:
-            os.rename(i, archive_base_path + archive_file_name)
-        except FileExistsError:
-# TODO This doesn't work. Maybe find the file name with os.path and then upsuffix
-            os.rename(i, archive_base_path + "New " + archive_file_name)
+        if os.path.exists(file_in_archive_path):
+            newpath = base_path + r"\Archive\\" + filename + " New" + extension
+            os.rename(i, newpath)
+        else:
+            os.rename(i, file_in_archive_path)
 
     logging.info("Export Saved!")
 
@@ -108,7 +117,8 @@ def write_to_etrs():
     today_bom_format = str(today.strftime('%Y%m%d'))
     yesterday_bom_format = str((today - timedelta(days=1)).strftime('%Y%m%d'))
     weekend_bom_format = str((today - timedelta(days=3)).strftime('%Y%m%d'))
-    workflow_path = r"\BOM\Upchain Custom Reports\EBOM Reports\eBOM Workflow Report " # Trailing space is important here!
+     # Trailing space is important workflow_path!
+    workflow_path = r"\BOM\Upchain Custom Reports\EBOM Reports\eBOM Workflow Report "
 
     finance_source = fr"{BASE_PATH}ETRS\DataFiles\Finance {today}.csv "
     today_bom_source = fr"{BASE_PATH}{bom_export_path}{today_bom_format}.xlsx"
