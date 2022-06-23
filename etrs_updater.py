@@ -61,7 +61,7 @@ def load_data_file(source_path):
 
     source_path should be the file path of either a CSV or an Excel. If the
     file is a Formatted BOM, the sheet name will be correctly labelled in the
-    ETRS, otherwise it will follow standard Excel naming conventions
+    ETRS, otherwise it will follow default naming conventions
     """
 
     if source_path[-4:] == "csv ":
@@ -80,7 +80,7 @@ def load_data_file(source_path):
 
 
 def excel_archiver():
-    """ Moves any old excel documents to the Archive folder in the ETRS folder
+    """ Moves any old excel documents to the Archive folder from the ETRS folder
     """
 existing_file_list = glob.glob(fr"{BASE_PATH}\ETRS\*.xlsx")
 datetime_timestamp = datetime.datetime.now()
@@ -102,7 +102,7 @@ def write_to_etrs():
     on a daily basis.
     """
     # TODO Gen's feedback -
-    # f(strings) (done),
+    # f-strings (done),
     # create a base path variable (done),
     # loop through this somehow?
     bom_export_path = r"\BOM\BOM Exports\BOM Export "
@@ -112,15 +112,15 @@ def write_to_etrs():
     today_bom_format = str(today.strftime('%Y%m%d'))
     yesterday_bom_format = str((today - timedelta(days=1)).strftime('%Y%m%d'))
     weekend_bom_format = str((today - timedelta(days=3)).strftime('%Y%m%d'))
+    
      # Trailing space is important workflow_path!
-    workflow_path = r"\BOM\Upchain Custom Reports\EBOM Reports\eBOM Workflow Report "
-
+    workflow_source = r"\BOM\Upchain Custom Reports\EBOM Reports\eBOM Workflow Report "
     finance_source = fr"{BASE_PATH}ETRS\DataFiles\Finance {today}.csv "
     today_bom_source = fr"{BASE_PATH}{bom_export_path}{today_bom_format}.xlsx"
     yesterday_bom_source = fr"{BASE_PATH}{bom_export_path}{yesterday_bom_format}.xlsx"
     weekend_bom_source = fr"{BASE_PATH}{bom_export_path}{weekend_bom_format}.xlsx"
     monday_bom_source = fr"{BASE_PATH}{bom_export_path}{monday_bom_format}.xlsx"
-    workflow_source = fr"{BASE_PATH}{workflow_path}{today_bom_format}.xlsx"
+    workflow_source = fr"{BASE_PATH}{workflow_source}{today_bom_format}.xlsx"
 
     logging.info("Loading ETRS Workbook %s", TARGET_PATH)
     book = openpyxl.load_workbook(TARGET_PATH)
@@ -148,25 +148,22 @@ def write_to_etrs():
         logging.info("Loading Workflow Data")
         workflow_data = load_data_file(workflow_source)
 
-# Gen's feedback - loop this and avoid the explict calls
-        sheet_name_1 = "BOM Export"
-        sheet_name_2 = "Purchasing Lead Times"
-        sheet_name_3 = "Workflow"
-        sheet_name_4 = "Yesterday BOM Export"
-        sheet_name_5 = "Monday's BOM Export"
+# Gen's feedback - turn this into a dict, loop it and avoid the explict calls
+
+        sheet_names = {
+            "sheet_name_1" : ["BOM Export",today_bom_data],
+            "sheet_name_2" : ["Purchasing Lead Times",finance_data],
+            "sheet_name_3" : ["Workflow",workflow_data],
+            "sheet_name_4" : ["Yesterday BOM Export",yesterday_bom_data],
+            "sheet_name_5" : ["Monday's BOM Export",monday_bom_data]
+        }
+
         writer.book = book
         writer.sheets = {ws.title: ws for ws in book.worksheets}
 
-        logging.info("Writing Finance Data to ETRS")
-        finance_data.to_excel(writer, sheet_name=sheet_name_2)
-        logging.info("Writing today's BOM Export Data to ETRS")
-        today_bom_data.to_excel(writer, sheet_name=sheet_name_1)
-        logging.info("Writing yesterday's BOM Export Data to ETRS")
-        yesterday_bom_data.to_excel(writer, sheet_name=sheet_name_4)
-        logging.info("Writing Monday's BOM Export Data to ETRS")
-        monday_bom_data.to_excel(writer, sheet_name=sheet_name_5)
-        logging.info("Writing Workflow Export Data to ETRS")
-        workflow_data.to_excel(writer, sheet_name=sheet_name_3)
+        for i in sheet_names:
+            logging.info("Writing %s to ETRS" , sheet_names[i][0])
+            sheet_names[i][1].to_excel(writer, sheet_name=sheet_names[i][0] )
 
         logging.info("Saving Master...")
         book.save(fr"{BASE_PATH}\ETRS\\ETRS " + str(date.today()) + ".xlsx")
