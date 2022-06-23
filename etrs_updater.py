@@ -100,6 +100,7 @@ def write_to_etrs():
     will conform to the requirements of that sheet to automate the creation of
     a new ETRS file and archive the one. Ideally this process happens
     on a daily basis.
+
     """
     # TODO Gen's feedback -
     # f-strings (done),
@@ -112,61 +113,59 @@ def write_to_etrs():
     today_bom_format = str(today.strftime('%Y%m%d'))
     yesterday_bom_format = str((today - timedelta(days=1)).strftime('%Y%m%d'))
     weekend_bom_format = str((today - timedelta(days=3)).strftime('%Y%m%d'))
-    
-     # Trailing space is important workflow_path!
-    workflow_source = r"\BOM\Upchain Custom Reports\EBOM Reports\eBOM Workflow Report "
-    finance_source = fr"{BASE_PATH}ETRS\DataFiles\Finance {today}.csv "
+
+    # Trailing space is important workflow_path!
+
+    workflow_path = r"\BOM\Upchain Custom Reports\EBOM Reports\eBOM Workflow Report "
+    purchasing_source = fr"{BASE_PATH}ETRS\DataFiles\Finance {today}.csv "
     today_bom_source = fr"{BASE_PATH}{bom_export_path}{today_bom_format}.xlsx"
     yesterday_bom_source = fr"{BASE_PATH}{bom_export_path}{yesterday_bom_format}.xlsx"
     weekend_bom_source = fr"{BASE_PATH}{bom_export_path}{weekend_bom_format}.xlsx"
     monday_bom_source = fr"{BASE_PATH}{bom_export_path}{monday_bom_format}.xlsx"
-    workflow_source = fr"{BASE_PATH}{workflow_source}{today_bom_format}.xlsx"
+    workflow_source = fr"{BASE_PATH}{workflow_path}{today_bom_format}.xlsx"
+    
+    
 
     logging.info("Loading ETRS Workbook %s", TARGET_PATH)
     book = openpyxl.load_workbook(TARGET_PATH)
 
     with pd.ExcelWriter(TARGET_PATH, engine='openpyxl', mode='a', # pylint: disable=abstract-class-instantiated
                         if_sheet_exists="replace") as writer:
-        logging.info("Loading Finance Export Data")
-        finance_data = load_data_file(finance_source)
-        logging.info("Loading today's BOM Export Data")
-        today_bom_data = load_data_file(today_bom_source)
 
-        logging.info("Loading yesterday's BOM Export Data")
-
-        if os.path.exists(yesterday_bom_source):
-            yesterday_bom_data = load_data_file(yesterday_bom_source)
-        elif os.path.exists(weekend_bom_source):
-            logging.info("Yesterday's BOM Export not found. Skipping the weekend")
-            yesterday_bom_data = load_data_file(weekend_bom_source)
-        else:
-            logging.info("Couldn't find the BOM data files for the dates requested")
-
-        logging.info("Loading Monday's BOM Export Data")
-        monday_bom_data = load_data_file(monday_bom_source)
-
-        logging.info("Loading Workflow Data")
-        workflow_data = load_data_file(workflow_source)
-
-# Gen's feedback - turn this into a dict, loop it and avoid the explict calls
-
-        sheet_names = {
-            "sheet_name_1" : ["BOM Export",today_bom_data],
-            "sheet_name_2" : ["Purchasing Lead Times",finance_data],
-            "sheet_name_3" : ["Workflow",workflow_data],
-            "sheet_name_4" : ["Yesterday BOM Export",yesterday_bom_data],
-            "sheet_name_5" : ["Monday's BOM Export",monday_bom_data]
+        all_data_exports = {
+            "today_bom_export" : ["BOM Export", today_bom_source],
+            "purchasing_export" : ["Purchasing Lead Times", purchasing_source],
+            "workflow_export" : ["Workflow",workflow_source],
+            "yesterday_bom_export" : ["Yesterday BOM Export",yesterday_bom_source],
+            "monday_bom_export" : ["Monday's BOM Export",monday_bom_source]
         }
 
         writer.book = book
         writer.sheets = {ws.title: ws for ws in book.worksheets}
 
-        for i in sheet_names:
-            logging.info("Writing %s to ETRS" , sheet_names[i][0])
-            sheet_names[i][1].to_excel(writer, sheet_name=sheet_names[i][0] )
+        for j in all_data_exports:
+            if os.path.exists(all_data_exports[j][1]):
+                logging.info("Loading  %s from source" , all_data_exports[j][0])
+                loaded_data = load_data_file(all_data_exports[j][1])
+                logging.info("Writing %s to ETRS" , all_data_exports[j][0])
+                loaded_data.to_excel(writer, sheet_name=all_data_exports[j][0])
+            elif os.path.exists(weekend_bom_source):
+                logging.info("Loading  %s from source" , "Last Friday's BOM Export")
+                loaded_data = load_data_file(weekend_bom_source)
+                logging.info("Writing %s to ETRS" , "Last Friday's BOM Export")
+
+                # Last Friday's BOM Export has to be named
+                # Yesterday BOM Export for the excel formula to work in Master File
+                loaded_data.to_excel(writer, sheet_name="Yesterday BOM Export")
+            else:
+                logging.critical("Source files not found!")
 
         logging.info("Saving Master...")
-        book.save(fr"{BASE_PATH}\ETRS\\ETRS " + str(date.today()) + ".xlsx")
+        # DEBUGGING PATH
+        # book.save(fr"{BASE_PATH}\ETRS\\ETRS Master\\ETRS " + str(date.today()) + ".xlsx") 
+        
+        #REAL PATH
+        book.save(fr"{BASE_PATH}\ETRS\\ETRS " + str(date.today()) + ".xlsx") 
         logging.info(r"Master Saved!")
 
 def main():
