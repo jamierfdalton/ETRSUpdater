@@ -123,8 +123,7 @@ def write_to_etrs():
     weekend_bom_source = fr"{BASE_PATH}{bom_export_path}{weekend_bom_format}.xlsx"
     monday_bom_source = fr"{BASE_PATH}{bom_export_path}{monday_bom_format}.xlsx"
     workflow_source = fr"{BASE_PATH}{workflow_path}{today_bom_format}.xlsx"
-    
-    
+
 
     logging.info("Loading ETRS Workbook %s", TARGET_PATH)
     book = openpyxl.load_workbook(TARGET_PATH)
@@ -149,6 +148,7 @@ def write_to_etrs():
                 loaded_data = load_data_file(all_data_exports[j][1])
                 logging.info("Writing %s to ETRS" , all_data_exports[j][0])
                 loaded_data.to_excel(writer, sheet_name=all_data_exports[j][0])
+
             elif os.path.exists(weekend_bom_source):
                 logging.info("Loading  %s from source" , "Last Friday's BOM Export")
                 loaded_data = load_data_file(weekend_bom_source)
@@ -157,16 +157,17 @@ def write_to_etrs():
                 # Last Friday's BOM Export has to be named
                 # Yesterday BOM Export for the excel formula to work in Master File
                 loaded_data.to_excel(writer, sheet_name="Yesterday BOM Export")
+
             else:
                 logging.critical("Source files not found!")
 
         logging.info("Saving Master...")
         # DEBUGGING PATH
-        # book.save(fr"{BASE_PATH}\ETRS\\ETRS Master\\ETRS " + str(date.today()) + ".xlsx") 
-        
+        # book.save(fr"{BASE_PATH}\ETRS\\ETRS Master\\ETRS " + str(date.today()) + ".xlsx")
         #REAL PATH
-        book.save(fr"{BASE_PATH}\ETRS\\ETRS " + str(date.today()) + ".xlsx") 
+        book.save(fr"{BASE_PATH}\ETRS\\ETRS " + str(date.today()) + ".xlsx")
         logging.info(r"Master Saved!")
+
 
 def main():
     """ Wrapper function for running the major elements of the script in order
