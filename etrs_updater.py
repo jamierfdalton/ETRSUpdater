@@ -15,11 +15,13 @@ import os
 import glob
 import logging
 import pandas as pd
+import numpy as np
 import openpyxl
+import xlwings as xl
 import gspread
 
 BASE_PATH = r"S:\PDM Files\P1 - Mustang\\"
-TARGET_PATH = fr"{BASE_PATH}\ETRS\ETRS Master\ETRS v4 Master.xlsx"
+TARGET_PATH = fr"{BASE_PATH}\ETRS\ETRS Master\ETRS v7 Master.xlsx"
 
 logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s - ',
                     encoding='utf-8',
@@ -82,15 +84,15 @@ def load_data_file(source_path):
 def excel_archiver():
     """ Moves any old excel documents to the Archive folder from the ETRS folder
     """
-existing_file_list = glob.glob(fr"{BASE_PATH}\ETRS\*.xlsx")
-datetime_timestamp = datetime.datetime.now()
-string_timestamp = datetime_timestamp.strftime("%H-%M-%S")
+    existing_file_list = glob.glob(fr"{BASE_PATH}\ETRS\*.xlsx")
+    datetime_timestamp = datetime.datetime.now()
+    string_timestamp = datetime_timestamp.strftime("%H-%M-%S")
 
-for i in existing_file_list:
-    path, file = os.path.split(i)
-    existing_filename, extension = os.path.splitext(file)
-    archive_path = fr"{BASE_PATH}ETRS\Archive\{existing_filename} -- {string_timestamp}{extension}"
-    os.rename(i,archive_path)
+    for i in existing_file_list:
+        path, file = os.path.split(i)
+        existing_filename, extension = os.path.splitext(file)
+        archive_path = fr"{BASE_PATH}ETRS\Archive\{existing_filename} -- {string_timestamp}{extension}"
+        os.rename(i,archive_path)
 
 
 def write_to_etrs():
@@ -102,10 +104,7 @@ def write_to_etrs():
     on a daily basis.
 
     """
-    # TODO Gen's feedback -
-    # f-strings (done),
-    # create a base path variable (done),
-    # loop through this somehow?
+
     bom_export_path = r"\BOM\BOM Exports\BOM Export "
     today = date.today()
     monday = today - datetime.timedelta(days=today.weekday())
@@ -164,9 +163,145 @@ def write_to_etrs():
         logging.info("Saving Master...")
         # DEBUGGING PATH
         # book.save(fr"{BASE_PATH}\ETRS\\ETRS Master\\ETRS " + str(date.today()) + ".xlsx")
-        #REAL PATH
+        # REAL PATH
         book.save(fr"{BASE_PATH}\ETRS\\ETRS " + str(date.today()) + ".xlsx")
         logging.info(r"Master Saved!")
+
+def refresh_excel_values(path):
+    app = xl.App(visible=False)
+    book = app.books.open(path)
+    book.save()
+    app.kill()
+
+
+def tableify_etrs():
+    """ Manipulates the ETRS in order to make it easier to report stats on"""
+
+    today = date.today()
+    bom_export_path = r"\BOM\BOM Exports\BOM Export "
+    today_bom_format = str(today.strftime('%Y%m%d'))
+    workflow_path = r"\BOM\Upchain Custom Reports\EBOM Reports\eBOM Workflow Report "
+    todays_etrs = fr"{BASE_PATH}\ETRS\\ETRS " + str(date.today()) + ".xlsx"
+    workflow_file = fr"{BASE_PATH}{workflow_path}{today_bom_format}.xlsx"
+    today_bom_source = fr"{BASE_PATH}{bom_export_path}{today_bom_format}.xlsx"
+
+    refresh_excel_values(todays_etrs) # refresh ETRS values
+    
+
+
+    etrs_df = pd.read_excel(r"S:\PDM Files\P1 - Mustang\ETRS\ETRS Master\ETRS 2022-06-29(1).xlsx", sheet_name="BTRS", skiprows = 4)
+    workflow_df = pd.read_excel(r"S:\PDM Files\P1 - Mustang\BOM\Upchain Custom Reports\EBOM Reports\eBOM Workflow Report " + str(today.strftime('%Y%m%d') + ".xlsx"))
+   # bom_df = pd.read_excel(today_bom_source, sheet_name = "Raw BOM")
+
+
+    etrs_df.rename(columns={ 
+        etrs_df.columns[22]: "Reqs Item Name",
+        etrs_df.columns[23]: "Reqs Item Description",
+        etrs_df.columns[24]: "Reqs Quantity",
+        etrs_df.columns[25]: "Reqs Type",
+        etrs_df.columns[26]: "Reqs Mass (grams)",
+        etrs_df.columns[27]: "Reqs Revision Note",
+        etrs_df.columns[28]: "Reqs Material",
+        etrs_df.columns[29]: "Reqs Finish",
+        etrs_df.columns[30]: "Reqs Safety Critical",
+        etrs_df.columns[31]: "Reqs 3D Model",
+        etrs_df.columns[32]: "Reqs Fixings and Torque Value Required",
+        etrs_df.columns[33]: "Reqs Fixings and Torque Value Complete",
+        etrs_df.columns[34]: "Reqs 2D Drawings Required",
+        etrs_df.columns[35]: "Reqs 2d Drawings Complete",
+        etrs_df.columns[40]: "Reqs Supplier Nomination Status",
+        etrs_df.columns[41]: "Reqs Manufacturer",
+        etrs_df.columns[42]: " - ",
+        etrs_df.columns[43]: "Reqs Development Lead Time",
+        etrs_df.columns[44]: "Reqs Tool Lead Time",
+        etrs_df.columns[45]: "Reqs Production Lead Time",
+        etrs_df.columns[47]: "Reqs PPAP Complete",
+        etrs_df.columns[48]: "Reqs PPAP Timing",
+        etrs_df.columns[49]: "Reqs SIP Timing"
+    }, inplace=True)
+
+    selected_columns_df = etrs_df.filter([
+        "Item Number",
+        "Treepath", 
+        "Revision Note", 
+        "Function Group", 
+        "Status",
+        "Reqs Item Name",
+        "Reqs Item Description",
+        "Reqs Quantity",
+        "Reqs Type",
+        "Reqs Mass (grams)",
+        "Reqs Revision Note",
+        "Reqs Material",
+        "Reqs Finish",
+        "Reqs Safety Critical",
+        "Reqs 3D Model",
+        "Reqs Fixings and Torque Value Required",
+        "Reqs Fixings and Torque Value Complete",
+        "Reqs 2D Drawings Required",
+        "Reqs 2d Drawings Complete",
+        "Reqs Supplier Nomination Status",
+        "Reqs Manufacturer",
+        "Reqs Development Lead Time",
+        "Reqs Tool Lead Time",
+        "Reqs Production Lead Time",
+        "Reqs PPAP Complete",
+        "Reqs PPAP Timing",
+        "Reqs SIP Timing",
+        "New Part from Yesterday",
+        "New Part from Monday",
+        ])
+
+    print(selected_columns_df["Item Number"])
+    print(workflow_df["Item Number"])
+    merged_df = pd.merge(selected_columns_df, workflow_df, how="outer", on="Item Number")
+       
+    gateway_conditions = [
+        (merged_df["Workflow"] == "PDM Release") & (merged_df["Revision Note_x"].str.contains('G2', na = False)),
+        (merged_df["Workflow"].str.contains("G2", na = False)),
+        (merged_df["Workflow"].str.contains("G3", na = False)),
+        (merged_df["Workflow"].str.contains("G1", na = False)),
+        (merged_df["Revision Note_x"].str.contains("G3", na = False)),
+        (merged_df["Revision Note_x"].str.contains("G2", na = False)),
+        (merged_df["Revision Note_x"].str.contains("G1", na = False)),
+        (merged_df["Revision Note_y"].str.contains("G1", na = False)),
+        (merged_df["Revision Note_y"].str.contains("Initial", na = False)),
+    ]
+
+    merged_df["Gateway"] = np.select(gateway_conditions, 
+                                    ["G2 - Release", "G2 - Release", "G3 - Release", 
+                                     "G1 - Release", "G3 - Release", "G2 - Release",
+                                     "G1 - Release", "G1 - Release", "G1 - Release"],
+                                     default = "Unreleased")
+   
+
+    merged_df["Length of Item Name"] = merged_df["Item Name"].astype(str).map(len)
+
+    fixing_conditions = [
+        (merged_df["Item Name"].str.contains("PHANTOM", na = False)),
+        (merged_df["Length of Item Name"] > 10),
+        # Add item name ends in 8s
+        ]
+
+
+    merged_df["Fixing"] = np.select(fixing_conditions, ["No", "Yes"])
+
+    merged_df.to_csv(fr"{BASE_PATH}\ETRS\ETRS Master\output.csv")
+
+    prepping_flat_df = merged_df.filter(["Item Name", "Item Description", "Quantity", "Part Type", "Item Number"])
+    prepping_flat_df.set_index("Item Number")
+
+    
+    # prepping_flat_df.loc['Part Type'] == "Purchased Item"
+    # test_df = test_df.pivot_table(index = ["Item Name", "Item Description"], values="Quantity")
+
+    debug = prepping_flat_df.pivot_table(index = ["Item Number", "Item Name", "Item Description", "Part Type"], values="Quantity")
+
+    print(debug)
+    
+    print(debug.loc("Part Type"))
+    
+    debug.to_csv(fr"{BASE_PATH}\ETRS\ETRS Master\output2.csv")
 
 
 def main():
@@ -176,13 +311,16 @@ def main():
     logging.info("\n\n")
     logging.info("Updating ETRS...")
 
+    
+    
     write_to_finance_update_csv(
         "1OZemQa88tV9a4_-21oaAQnt5mbAo1Y7WLTXCDM7jIoE",
         fr"{BASE_PATH}\ETRS\DataFiles\\Finance " + str(date.today()) + ".csv"
         )
     excel_archiver()
     write_to_etrs()
-
+    # tableify_etrs()
+ 
     logging.info("Update Successful")
 
 if __name__ == "__main__":
