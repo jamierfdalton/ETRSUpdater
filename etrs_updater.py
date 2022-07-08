@@ -115,13 +115,13 @@ def write_to_etrs():
 
     # Trailing space is important workflow_path!
 
-    workflow_path = r"\BOM\Upchain Custom Reports\EBOM Reports\eBOM Workflow Report "
+    # workflow_path = r"\BOM\Upchain Custom Reports\EBOM Reports\eBOM Workflow Report "
     purchasing_source = fr"{BASE_PATH}ETRS\DataFiles\Finance {today}.csv "
     today_bom_source = fr"{BASE_PATH}{bom_export_path}{today_bom_format}.xlsx"
     yesterday_bom_source = fr"{BASE_PATH}{bom_export_path}{yesterday_bom_format}.xlsx"
     weekend_bom_source = fr"{BASE_PATH}{bom_export_path}{weekend_bom_format}.xlsx"
     monday_bom_source = fr"{BASE_PATH}{bom_export_path}{monday_bom_format}.xlsx"
-    workflow_source = fr"{BASE_PATH}{workflow_path}{today_bom_format}.xlsx"
+    # workflow_source = fr"{BASE_PATH}{workflow_path}{today_bom_format}.xlsx"
 
 
     logging.info("Loading ETRS Workbook %s", TARGET_PATH)
@@ -133,7 +133,7 @@ def write_to_etrs():
         all_data_exports = {
             "today_bom_export" : ["BOM Export", today_bom_source],
             "purchasing_export" : ["Purchasing Lead Times", purchasing_source],
-            "workflow_export" : ["Workflow",workflow_source],
+            # "workflow_export" : ["Workflow",workflow_source],
             "yesterday_bom_export" : ["Yesterday BOM Export",yesterday_bom_source],
             "monday_bom_export" : ["Monday's BOM Export",monday_bom_source]
         }
@@ -181,7 +181,7 @@ def tableify_etrs():
     bom_export_path = r"\BOM\BOM Exports\BOM Export "
     today_bom_format = str(today.strftime('%Y%m%d'))
     workflow_path = r"\BOM\Upchain Custom Reports\EBOM Reports\eBOM Workflow Report "
-    todays_etrs = fr"{BASE_PATH}\ETRS\\ETRS " + str(date.today()) + ".xlsx"
+    todays_etrs = fr"{BASE_PATH}\ETRS\\ETRS Master\\ETRS " + str(date.today()) + ".xlsx"
     workflow_file = fr"{BASE_PATH}{workflow_path}{today_bom_format}.xlsx"
     today_bom_source = fr"{BASE_PATH}{bom_export_path}{today_bom_format}.xlsx"
 
@@ -217,7 +217,8 @@ def tableify_etrs():
         etrs_df.columns[45]: "Reqs Production Lead Time",
         etrs_df.columns[47]: "Reqs PPAP Complete",
         etrs_df.columns[48]: "Reqs PPAP Timing",
-        etrs_df.columns[49]: "Reqs SIP Timing"
+        etrs_df.columns[49]: "Reqs SIP Timing",
+        etrs_df.columns[51]: "Item Number"
     }, inplace=True)
 
     selected_columns_df = etrs_df.filter([
@@ -252,8 +253,6 @@ def tableify_etrs():
         "New Part from Monday",
         ])
 
-    print(selected_columns_df["Item Number"])
-    print(workflow_df["Item Number"])
     merged_df = pd.merge(selected_columns_df, workflow_df, how="outer", on="Item Number")
        
     gateway_conditions = [
@@ -280,7 +279,7 @@ def tableify_etrs():
     fixing_conditions = [
         (merged_df["Item Name"].str.contains("PHANTOM", na = False)),
         (merged_df["Length of Item Name"] > 10),
-        # Add item name ends in 8s
+        # TODO Add item name ends in 8s
         ]
 
 
@@ -291,17 +290,17 @@ def tableify_etrs():
     prepping_flat_df = merged_df.filter(["Item Name", "Item Description", "Quantity", "Part Type", "Item Number"])
     prepping_flat_df.set_index("Item Number")
 
+    print(prepping_flat_df.info())
+    print(prepping_flat_df.head())
+    test_df = prepping_flat_df.loc[(prepping_flat_df['Part Type'] == "Purchased Item") | (prepping_flat_df['Part Type'] == "Purchased ElectroMechanical Part") | (prepping_flat_df['Part Type'] == "Purchased Electrical Part") | (prepping_flat_df['Part Type'] == "Purchased Mechanical Part")]
     
-    # prepping_flat_df.loc['Part Type'] == "Purchased Item"
-    # test_df = test_df.pivot_table(index = ["Item Name", "Item Description"], values="Quantity")
-
-    debug = prepping_flat_df.pivot_table(index = ["Item Number", "Item Name", "Item Description", "Part Type"], values="Quantity")
-
-    print(debug)
     
-    print(debug.loc("Part Type"))
     
-    debug.to_csv(fr"{BASE_PATH}\ETRS\ETRS Master\output2.csv")
+    output = test_df.pivot_table(index = ["Item Name", "Item Description", "Part Type", "Item Number"], values="Quantity")
+    
+    print(output.info())
+    print(output["Part Type"])
+    # output.to_csv(fr"{BASE_PATH}\ETRS\ETRS Master\output2.csv")
 
 
 def main():
@@ -313,13 +312,13 @@ def main():
 
     
     
-    write_to_finance_update_csv(
-        "1OZemQa88tV9a4_-21oaAQnt5mbAo1Y7WLTXCDM7jIoE",
-        fr"{BASE_PATH}\ETRS\DataFiles\\Finance " + str(date.today()) + ".csv"
-        )
-    excel_archiver()
-    write_to_etrs()
-    # tableify_etrs()
+    # write_to_finance_update_csv(
+    #     "1OZemQa88tV9a4_-21oaAQnt5mbAo1Y7WLTXCDM7jIoE",
+    #     fr"{BASE_PATH}\ETRS\DataFiles\\Finance " + str(date.today()) + ".csv"
+    #     )
+    # excel_archiver()
+    # write_to_etrs()
+    tableify_etrs()
  
     logging.info("Update Successful")
 
