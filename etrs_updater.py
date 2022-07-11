@@ -36,7 +36,7 @@ logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s - ',
 def connect_to_google_sheet(sheet_id):
     """ Connects to Google Sheets and returns values as a list of lists """
     logging.info("Connecting to Google Sheets...")
-    google_connect = gspread.service_account()
+    google_connect = gspread.service_account(filename="export-finance-formatted-bom-6c652f359e2f.json")
     sheet = google_connect.open_by_key(sheet_id).sheet1
     logging.info("Connected")
     return sheet
@@ -158,7 +158,7 @@ def write_to_etrs():
                 loaded_data.to_excel(writer, sheet_name="Yesterday BOM Export")
 
             else:
-                logging.critical("Source files not found!")
+                logging.critical(f"Source files for {j} not found!")
 
         logging.info("Saving Master...")
         # DEBUGGING PATH
@@ -312,13 +312,13 @@ def main():
 
     
     
-    # write_to_finance_update_csv(
-    #     "1OZemQa88tV9a4_-21oaAQnt5mbAo1Y7WLTXCDM7jIoE",
-    #     fr"{BASE_PATH}\ETRS\DataFiles\\Finance " + str(date.today()) + ".csv"
-    #     )
-    # excel_archiver()
-    # write_to_etrs()
-    tableify_etrs()
+    write_to_finance_update_csv(
+        "1OZemQa88tV9a4_-21oaAQnt5mbAo1Y7WLTXCDM7jIoE",
+        fr"{BASE_PATH}\ETRS\DataFiles\\Finance " + str(date.today()) + ".csv"
+        )
+    excel_archiver()
+    write_to_etrs()
+    # tableify_etrs()
  
     logging.info("Update Successful")
 
