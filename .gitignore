@@ -3,5 +3,5 @@
 /backup.py
 /workingversion.py
 /learning.py
-/requirements.txt
 *.json
+*.log
