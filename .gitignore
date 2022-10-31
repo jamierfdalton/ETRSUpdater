@@ -4,4 +4,8 @@
 /workingversion.py
 /learning.py
 *.json
-*.log
+*.csv
+/etrs_updater.log
+/test.py
+/vscode
+*debugging*

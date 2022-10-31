@@ -17,16 +17,57 @@ import logging
 import pandas as pd
 import numpy as np
 import openpyxl
+from openpyxl import Workbook
+from openpyxl.utils.dataframe import dataframe_to_rows
+from openpyxl import load_workbook
 import xlwings as xl
 import gspread
 
 BASE_PATH = r"S:\PDM Files\P1 - Mustang\\"
 TARGET_PATH = fr"{BASE_PATH}\ETRS\ETRS Master\ETRS v7 Master.xlsx"
 
+weekday = {
+    "Monday" : 0,
+    "Tuesday" : 1,
+    "Wednesday" : 2,
+    "Thursday" : 3,
+    "Friday" : 4,
+    "Saturday" : 5,
+    "Sunday" : 6,
+}
+
+now = datetime.datetime.today()
+bom_export_path = r"\BOM\BOM Exports\BOM Export "
+today = date.today()
+this_monday = now + timedelta(days = (weekday["Friday"]- now.weekday()))
+last_friday = now + timedelta(days = (weekday["Friday"]- now.weekday()), weeks = -1)
+monday_bom_format = str(this_monday.strftime('%Y%m%d'))
+today_bom_format = str(today.strftime('%Y%m%d'))
+today_fin_format = str(today.strftime('%Y-%m-%d'))
+yesterday_bom_format = str((today - timedelta(days=1)).strftime('%Y%m%d'))
+friday_bom_format = str(last_friday.strftime('%Y%m%d'))
+
+# Trailing space is important workflow_path!
+custom_path = r"\BOM\Upchain Custom Reports"
+workflow_path = fr"{custom_path}\EBOM Reports\eBOM Workflow Report "
+
+today_bom_source = fr"{BASE_PATH}{bom_export_path}{today_bom_format}.xlsx"
+yesterday_bom_source = fr"{BASE_PATH}{bom_export_path}{yesterday_bom_format}.xlsx"
+monday_bom_source = fr"{BASE_PATH}{bom_export_path}{monday_bom_format}.xlsx"
+friday_bom_source = fr"{BASE_PATH}{bom_export_path}{friday_bom_format}.xlsx"
+workflow_source = fr"{BASE_PATH}{workflow_path}{today_bom_format}.xlsx"
+complete_source = fr"{BASE_PATH}{custom_path}\Complete Report\Complete Report {today_bom_format}.csv"
+purchasing_source = fr"{BASE_PATH}ETRS\DataFiles\Finance {today}.csv"
+timing_source = fr"{BASE_PATH}ETRS\New Parts\Timing Sheet.xlsx"
+
+today_bom_df = pd.read_excel(today_bom_source, sheet_name="Formatted BOM", index_col=None, na_values=["NA"], usecols="D:F")
+yesterday_bom_df = pd.read_excel(yesterday_bom_source, sheet_name="Formatted BOM", index_col=None, na_values=["NA"], usecols="D:F")
+monday_bom_df = pd.read_excel(monday_bom_source, sheet_name="Formatted BOM", index_col=None, na_values=["NA"], usecols="D:F")
+
 logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s - ',
                     encoding='utf-8',
                     datefmt='%Y-%m-%d %H:%M:%S',
-                    level=logging.INFO,
+                    level=logging.DEBUG,
                     handlers=[
                         logging.FileHandler("etrs_updater.log"),
                         logging.StreamHandler()
@@ -105,66 +146,53 @@ def write_to_etrs():
 
     """
 
-    bom_export_path = r"\BOM\BOM Exports\BOM Export "
-    today = date.today()
-    monday = today - datetime.timedelta(days=today.weekday())
-    monday_bom_format = str(monday.strftime('%Y%m%d'))
-    today_bom_format = str(today.strftime('%Y%m%d'))
-    yesterday_bom_format = str((today - timedelta(days=1)).strftime('%Y%m%d'))
-    weekend_bom_format = str((today - timedelta(days=3)).strftime('%Y%m%d'))
-
-    # Trailing space is important workflow_path!
-
-    # workflow_path = r"\BOM\Upchain Custom Reports\EBOM Reports\eBOM Workflow Report "
-    purchasing_source = fr"{BASE_PATH}ETRS\DataFiles\Finance {today}.csv "
-    today_bom_source = fr"{BASE_PATH}{bom_export_path}{today_bom_format}.xlsx"
-    yesterday_bom_source = fr"{BASE_PATH}{bom_export_path}{yesterday_bom_format}.xlsx"
-    weekend_bom_source = fr"{BASE_PATH}{bom_export_path}{weekend_bom_format}.xlsx"
-    monday_bom_source = fr"{BASE_PATH}{bom_export_path}{monday_bom_format}.xlsx"
-    # workflow_source = fr"{BASE_PATH}{workflow_path}{today_bom_format}.xlsx"
-
-
     logging.info("Loading ETRS Workbook %s", TARGET_PATH)
+    logging.info("Note, this might take a while...")
     book = openpyxl.load_workbook(TARGET_PATH)
 
     with pd.ExcelWriter(TARGET_PATH, engine='openpyxl', mode='a', # pylint: disable=abstract-class-instantiated
                         if_sheet_exists="replace") as writer:
-
-        all_data_exports = {
-            "today_bom_export" : ["BOM Export", today_bom_source],
-            "purchasing_export" : ["Purchasing Lead Times", purchasing_source],
-            # "workflow_export" : ["Workflow",workflow_source],
-            "yesterday_bom_export" : ["Yesterday BOM Export",yesterday_bom_source],
-            "monday_bom_export" : ["Monday's BOM Export",monday_bom_source]
-        }
-
+        
         writer.book = book
         writer.sheets = {ws.title: ws for ws in book.worksheets}
 
-        for j in all_data_exports:
-            if os.path.exists(all_data_exports[j][1]):
-                logging.info("Loading  %s from source" , all_data_exports[j][0])
-                loaded_data = load_data_file(all_data_exports[j][1])
-                logging.info("Writing %s to ETRS" , all_data_exports[j][0])
-                loaded_data.to_excel(writer, sheet_name=all_data_exports[j][0])
+        all_data_exports = {
+            "BOM Export": ["Formatted BOM", today_bom_source],
+            "Raw BOM" : ["Raw BOM", today_bom_source],
+            "Purchasing Lead Times" : [f"Finance {today_fin_format}", purchasing_source],
+            "Monday's BOM Export" : ["Formatted BOM", monday_bom_source],
+            "Friday's BOM Export" : ["Formatted BOM", friday_bom_source],
+            "Workflow" : ["Report Data", workflow_source],
+            "Yesterday BOM Export" : ["Formatted BOM", yesterday_bom_source],
+            "Complete Export" : [f"Complete Report {today_bom_format}",complete_source],
+            "Timing" : ["Timing", timing_source ]
+        }
 
-            elif os.path.exists(weekend_bom_source):
-                logging.info("Loading  %s from source" , "Last Friday's BOM Export")
-                loaded_data = load_data_file(weekend_bom_source)
-                logging.info("Writing %s to ETRS" , "Last Friday's BOM Export")
+        items = all_data_exports.items()
 
-                # Last Friday's BOM Export has to be named
-                # Yesterday BOM Export for the excel formula to work in Master File
-                loaded_data.to_excel(writer, sheet_name="Yesterday BOM Export")
+        for item in items:
+            logging.info("Loading %s from source" , item[0])
+            print(item[1][1])
+            if os.path.exists(item[1][1]) and item[1][1][-4:] == "xlsx":
+                loaded_data = pd.read_excel(item[1][1], sheet_name=item[1][0])
+                loaded_data.to_excel(writer, sheet_name=item[0])
+                logging.info("Writing %s to ETRS" , item[0])
 
-            else:
-                logging.critical(f"Source files for {j} not found!")
+            elif os.path.exists(item[1][1]) and item[1][1][-4:] == ".csv":
+                loaded_data = pd.read_csv(item[1][1])
+                loaded_data.to_excel(writer, sheet_name=item[0])
+                logging.info("Writing %s to ETRS" , item[0])
+
+            elif not os.path.exists(item[1][1]):
+                logging.critical(f"{item[0]} File not found")
+                pass
+        
 
         logging.info("Saving Master...")
         # DEBUGGING PATH
-        # book.save(fr"{BASE_PATH}\ETRS\\ETRS Master\\ETRS " + str(date.today()) + ".xlsx")
+        book.save(fr"{BASE_PATH}\ETRS\\ETRS Master\\ETRS " + str(date.today()) + ".xlsx")
         # REAL PATH
-        book.save(fr"{BASE_PATH}\ETRS\\ETRS " + str(date.today()) + ".xlsx")
+        # book.save(fr"{BASE_PATH}\ETRS\\ETRS " + str(date.today()) + ".xlsx")
         logging.info(r"Master Saved!")
 
 def refresh_excel_values(path):
@@ -302,6 +330,45 @@ def tableify_etrs():
     print(output["Part Type"])
     # output.to_csv(fr"{BASE_PATH}\ETRS\ETRS Master\output2.csv")
 
+def get_new_parts(today_bom, compared_bom):
+    new_parts_df = pd.concat([today_bom, compared_bom])
+
+    new_parts_df.drop_duplicates(subset= "Item Name", keep = False, inplace = True)
+    new_parts_df["Estimated Release Week"] = np.nan
+    new_parts_df["Estimated Actual Date"] = np.nan
+    new_parts_df["Comments"] = np.nan
+    new_parts_df["PPAP Planned Timing"] = np.nan
+    new_parts_df["PPAP Actual Timing"] = np.nan
+    new_parts_df["Logistics Estimated Timing"] = np.nan
+    new_parts_df["Logistics Planned Timing"] = np.nan
+    new_parts_df["Logistics Actual Timing"] = np.nan
+    return new_parts_df
+
+def save_new_parts(dataframe, filename):
+    wb = Workbook()
+    ws = wb.active
+
+    for r in dataframe_to_rows(dataframe, index=True, header=True):
+        ws.append(r)
+
+    dims = {}
+    for row in ws.rows:
+        for cell in row:
+            if cell.value:
+                dims[cell.column_letter] = max((dims.get(cell.column_letter, 0), len(str(cell.value))))    
+    for col, value in dims.items():
+        ws.column_dimensions[col].width = value
+
+    wb.save(fr"S:\PDM Files\P1 - Mustang\ETRS\New Parts\{filename}\{filename} New Parts {today_bom_format}.xlsx")
+
+def update_timing_sheet():
+    wb = load_workbook(r"S:\PDM Files\P1 - Mustang\ETRS\New Parts\Timing Sheet.xlsx")
+    ws = wb.active
+    df = get_new_parts(today_bom_df, monday_bom_df)
+    new_parts_list = df.values.tolist()
+    for data in new_parts_list:
+        ws.append(data)
+    wb.save(filename = r"S:\PDM Files\P1 - Mustang\ETRS\New Parts\Timing Sheet.xlsx")
 
 def main():
     """ Wrapper function for running the major elements of the script in order
@@ -309,15 +376,17 @@ def main():
 
     logging.info("\n\n")
     logging.info("Updating ETRS...")
-
     
-    
-    write_to_finance_update_csv(
-        "1OZemQa88tV9a4_-21oaAQnt5mbAo1Y7WLTXCDM7jIoE",
-        fr"{BASE_PATH}\ETRS\DataFiles\\Finance " + str(date.today()) + ".csv"
-        )
-    excel_archiver()
+    # write_to_finance_update_csv(
+    #     "1OZemQa88tV9a4_-21oaAQnt5mbAo1Y7WLTXCDM7jIoE",
+    #     fr"{BASE_PATH}\ETRS\DataFiles\\Finance " + str(date.today()) + ".csv"
+    #     )
+    # DEBUG Cancel archiving when debugging
+    # excel_archiver()
     write_to_etrs()
+    save_new_parts(get_new_parts(today_bom_df, yesterday_bom_df), "Daily")
+    save_new_parts(get_new_parts(today_bom_df, monday_bom_df), "Weekly")
+    update_timing_sheet()
     # tableify_etrs()
  
     logging.info("Update Successful")
